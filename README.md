@@ -70,8 +70,6 @@ myagent-storage-architecture/
 ## 下载
 
 - GitHub：本仓库（`git clone` 或右上角 Code → Download ZIP）
-- 网盘（国内更快，内容与 GitHub 一致）：
-  `https://pan.baidu.com/s/18jRnVXNy_saXC-yQG_Hojw?pwd=hgvi` 提取码 `hgvi`
 - 配套的记忆架构：[myagent-memory-architecture](https://github.com/LiMuBai-QiuWuJi/myagent-memory-architecture)
 
 ## 边界
