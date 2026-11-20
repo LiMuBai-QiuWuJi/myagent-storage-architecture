@@ -1,6 +1,6 @@
 # MyAgent 存储架构（myagent-storage-architecture）
 
-**版本：V9（2026-11-20）** · 作者：[LiMuBai-QiuWuJi](https://github.com/LiMuBai-QiuWuJi)（全网同名「秋秋的AI工具箱」）
+**版本：V9（2026-11-20）** · 作者：[LiMuBai-QiuWuJi](https://github.com/LiMuBai-QiuWuJi)
 
 一套给 AI 用的本地档案库规则：**一个项目一个目录，一行数据一个条目，所有 .md 都是生成物。**
 解决的问题只有一个——让「这东西在哪、叫什么、改之前该读什么」从**猜**变成**查**。
