@@ -1,0 +1,983 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MyAgent 档案库</title>
+<style>
+:root{
+  --paper:#F3F0E8; --paper2:#FFFFFF; --ink:#0D0D0D; --ink2:#1F1F1F;
+  --dim:#6B6660; --faint:#96908A; --line:#0D0D0D; --line2:#DBD5C9;
+  --accent:#E4572E; --accent2:#1B4D3E;
+  --sans:"Geist","Switzer",-apple-system,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --serif:"PP Editorial New","Instrument Serif","Noto Serif SC","Songti SC",Georgia,serif;
+  --mono:"Geist Mono","SF Mono","JetBrains Mono",Consolas,monospace;
+  --ease:cubic-bezier(.16,1,.3,1);
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font:13.5px/1.6 var(--sans);color:var(--ink);background:var(--paper);
+  display:flex;overflow:hidden;-webkit-font-smoothing:antialiased}
+::selection{background:var(--accent);color:#fff}
+
+/* 左栏：目录页 */
+aside{width:330px;min-width:330px;background:var(--paper);border-right:2px solid var(--line);
+  display:flex;flex-direction:column;position:relative}
+.brand{padding:26px 24px 0;cursor:pointer}
+.brand b{display:block;font-size:40px;line-height:.95;letter-spacing:-.055em;font-weight:800}
+.brand small{display:block;font-family:var(--mono);font-size:9px;letter-spacing:.18em;
+  color:var(--dim);margin-top:10px;word-break:break-all;text-transform:uppercase}
+.stat{padding:18px 24px 16px;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;
+  color:var(--dim);text-transform:uppercase;display:flex;gap:14px;flex-wrap:wrap;
+  border-bottom:2px solid var(--line);margin-bottom:0}
+.stat b{color:var(--ink);font-weight:700}
+.stat .warn{color:var(--accent)}
+.search{padding:12px 24px 12px;display:flex;align-items:center;gap:8px}
+.search input{flex:1;padding:8px 0;border:0;border-bottom:2px solid var(--line);
+  background:transparent;font:inherit;font-size:13px;color:var(--ink);outline:none;
+  transition:border-color .35s var(--ease)}
+.search input::placeholder{color:var(--faint)}
+.search input:focus{border-bottom-color:var(--accent)}
+.search .coll{flex:none;border:2px solid var(--line);background:transparent;color:var(--dim);
+  font-family:var(--mono);font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;
+  padding:5px 7px;cursor:pointer;transition:all .25s var(--ease)}
+.search .coll:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tree{flex:1;overflow:auto;padding:0 0 40px;scrollbar-width:thin}
+.tree::-webkit-scrollbar{width:7px}
+.tree::-webkit-scrollbar-thumb{background:#CFC8BA}
+
+.nd{display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;
+  padding:8px 20px 8px calc(12px + var(--lv,0) * 15px);position:relative;
+  border-bottom:1px solid var(--line2);
+  transition:background .3s var(--ease),padding-left .3s var(--ease)}
+.nd:hover{background:#EAE5DA}
+.nd .ind{display:flex;align-self:stretch;flex:none;margin:-8px 0}
+.nd .ind i{width:15px;display:block;border-left:1px solid #C9C2B2}
+.nd:hover .ind i{border-left-color:#B3AB98}
+.nd.on .ind i{border-left-color:#4A4A4A}
+@keyframes flash{0%{background:var(--accent)}60%{background:var(--accent)}100%{background:transparent}}
+.nd.flash{animation:flash .6s var(--ease);color:#fff}
+.nd.on{background:var(--ink);color:#fff;border-bottom-color:var(--ink)}
+.nd.on .nm,.nd.on .idw,.nd.on .ct{color:#fff}
+.nd.on .ar{color:var(--accent)}
+.nd .ar{width:12px;flex:none;display:grid;place-items:center;color:var(--dim);
+  transition:transform .35s var(--ease);font-size:8px;line-height:1}
+.nd .ar.open{transform:rotate(90deg)}
+.nd .ar.leaf{opacity:0}
+.nd .ic{width:13px;flex:none;display:grid;place-items:center;color:var(--dim)}
+.nd .ic svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round}
+.nd .idw{flex:none;width:32px;font-family:var(--mono);font-size:9.5px;font-weight:700;
+  color:var(--accent);letter-spacing:.02em}
+.nd .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;
+  font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.nd .ct{color:var(--faint);font-size:9.5px;flex:none;font-family:var(--mono);letter-spacing:.04em}
+.nd.grp{font-family:var(--mono);font-size:8.5px;letter-spacing:.24em;text-transform:uppercase;
+  color:#fff;background:var(--ink);padding:7px 20px 7px calc(12px + var(--lv,0) * 15px);
+  border-bottom:0;font-weight:700}
+.nd.grp:hover{background:var(--ink)}
+.nd.grp .nm{font-size:8.5px;color:#fff;letter-spacing:.24em;font-weight:700}
+.nd.grp.flash{animation:none}
+.nd.cat{background:#E4DED0;border-bottom:1px solid #CFC7B4;
+  padding:6px 20px 6px calc(12px + var(--lv,0) * 15px)}
+.nd.cat:hover{background:#DAD3C2}
+.nd.cat .nm{font-size:10px;font-weight:700;letter-spacing:.06em;color:var(--ink2);
+  font-family:var(--mono);text-transform:uppercase}
+.nd.cat .ct{font-size:8.5px;color:var(--dim)}
+.nd.cat .ar{color:var(--ink2)}
+.dot{width:7px;height:7px;flex:none;background:var(--accent2);border-radius:0}
+.dot.missing{background:var(--accent)}
+.dot.paused{background:#C08A00}
+.dot.dead{background:var(--faint)}
+.dot.external{background:#2F6B57}
+
+/* 右栏 */
+main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:var(--paper)}
+.bar{display:flex;align-items:center;gap:10px;padding:0 34px;border-bottom:2px solid var(--line);
+  flex:none;min-height:60px;background:var(--paper)}
+.crumb{flex:1;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-transform:uppercase}
+.btn{padding:7px 15px;border:2px solid var(--line);border-radius:0;background:var(--paper);
+  color:var(--ink);font:inherit;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;
+  transition:all .3s var(--ease)}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.btn:active{transform:translateY(1px)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.pri:hover{background:var(--ink);border-color:var(--ink);color:#fff}
+.btn[disabled]{opacity:.25;cursor:default}
+.btn[disabled]:hover{background:var(--paper);color:var(--ink)}
+.view{flex:1;overflow:auto;padding:40px 46px 90px;scrollbar-width:thin}
+.view::-webkit-scrollbar{width:9px}
+.view::-webkit-scrollbar-thumb{background:#CFC8BA}
+.empty{color:var(--faint);margin-top:18vh;text-align:center;font-size:12px;
+  font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase}
+
+.kicker{display:inline-block;font-family:var(--mono);font-size:9px;letter-spacing:.22em;
+  text-transform:uppercase;background:var(--ink);color:var(--paper);padding:5px 11px;margin-bottom:22px}
+h1.hero{font-size:86px;line-height:.86;letter-spacing:-.06em;margin:0 0 22px;font-weight:800}
+.lede{font-size:14.5px;line-height:1.85;color:var(--ink2);max-width:56ch;margin:0 0 40px;
+  padding-left:16px;border-left:4px solid var(--accent)}
+.lede code{font-family:var(--mono);font-size:12px;background:var(--ink);color:var(--paper);
+  padding:1px 6px}
+.bento{display:grid;grid-template-columns:1fr 1fr;gap:0;border:2px solid var(--line);
+  max-width:820px;margin-bottom:6px}
+.cell{padding:26px 26px 22px;border-right:2px solid var(--line);border-bottom:2px solid var(--line);
+  background:var(--paper);transition:background .3s var(--ease),color .3s var(--ease)}
+.cell:nth-child(2n){border-right:0}
+.cell:nth-last-child(-n+2){border-bottom:0}
+.cell:hover{background:var(--ink);color:#fff}
+.cell:hover .cap,.cell:hover .cnote{color:#C8C2B8}
+.cell .num{display:block;font-size:54px;line-height:.9;letter-spacing:-.06em;font-weight:800;
+  font-variant-numeric:tabular-nums}
+.cell .cap{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--dim);margin-top:14px;font-weight:700}
+.cell .cnote{display:block;font-size:11px;color:var(--faint);margin-top:3px}
+
+h1{font-size:52px;line-height:.95;letter-spacing:-.045em;margin:0 0 12px;font-weight:800}
+.sub{display:inline-block;font-family:var(--mono);font-size:9.5px;margin-bottom:26px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.desc{font-size:15px;margin:0 0 30px;max-width:62ch;line-height:1.85;color:var(--ink2);
+  font-weight:500}
+.meta{display:grid;grid-template-columns:60px 1fr;gap:0;font-size:12.5px;
+  margin:0 0 34px;max-width:74ch;border-top:2px solid var(--line)}
+.meta dt{color:var(--dim);font-size:8.5px;font-family:var(--mono);letter-spacing:.18em;
+  text-transform:uppercase;padding:12px 0 0;font-weight:700}
+.meta dd{margin:0;word-break:break-word;color:var(--ink2);padding:10px 0;
+  border-bottom:1px solid var(--line2);font-weight:500}
+.tag{display:inline-block;border:1px solid var(--line);padding:1px 8px;margin:0 6px 4px 0;
+  font-size:10.5px;font-family:var(--mono)}
+.chip{display:inline-block;border:2px solid var(--line);padding:2px 10px;
+  margin:0 7px 7px 0;font-size:11.5px;font-weight:600;cursor:pointer;background:var(--paper);
+  color:var(--ink);transition:all .25s var(--ease)}
+.chip:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+h2{font-family:var(--mono);font-size:9px;letter-spacing:.24em;color:var(--ink);
+  margin:36px 0 12px;font-weight:700;text-transform:uppercase;
+  padding-bottom:8px;border-bottom:2px solid var(--line);max-width:820px}
+.miss{background:var(--accent);color:#fff;padding:13px 17px;font-size:12.5px;font-weight:600;
+  margin-bottom:22px;max-width:76ch}
+.note{color:var(--faint);font-size:11.5px;padding:8px 0;font-family:var(--mono)}
+.fl svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;color:var(--dim)}
+.pv .f svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:1.6;
+  stroke-linecap:round;stroke-linejoin:round;color:var(--dim);flex:none}
+.fl{border-bottom:1px solid var(--line2)}
+
+.rlist{max-width:820px;border-top:2px solid var(--line)}
+.rrow{display:flex;align-items:center;gap:16px;padding:12px 4px;cursor:pointer;
+  border-bottom:1px solid var(--line2);transition:all .25s var(--ease)}
+.rrow:hover{background:var(--ink);color:#fff;padding-left:14px}
+.rrow:hover .rnm{color:#fff}
+.rrow:hover .rid{color:var(--accent)}
+.rid{font-family:var(--mono);font-size:9.5px;color:var(--accent);width:32px;flex:none;font-weight:700}
+.rnm{flex:1;font-size:13.5px;font-weight:600;color:var(--ink)}
+.rtm{font-family:var(--mono);font-size:9.5px;color:var(--dim)}
+
+.tips{display:grid;grid-template-columns:repeat(3,1fr);gap:0;max-width:820px;
+  border:2px solid var(--line);border-right:0}
+.tip{padding:20px 20px 18px;border-right:2px solid var(--line)}
+.tip b{display:block;font-size:11px;font-weight:800;letter-spacing:.02em;margin-bottom:10px;
+  text-transform:uppercase}
+.tip code{display:block;font-family:var(--mono);font-size:10.5px;background:var(--ink);color:var(--paper);
+  padding:7px 9px;margin-bottom:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tip span{font-size:11px;color:var(--dim);line-height:1.6}
+
+.pv{border:2px solid var(--line);max-width:100%;background:var(--paper2)}
+.pv-h{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:2px solid var(--line);
+  font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.04em}
+.pv-h .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pv-b{background:var(--paper2)}
+.pv-b img,.pv-b video{display:block;max-width:100%;max-height:68vh;margin:0 auto}
+.pv-b audio{display:block;width:100%;padding:22px}
+.pv-b iframe{display:block;width:100%;height:72vh;border:0;background:#fff}
+pre.code{margin:0;padding:14px 0;overflow:auto;font:12px/1.8 var(--mono);tab-size:2;
+  max-height:70vh;counter-reset:ln;color:#E8E3D8;background:#0D0D0D}
+pre.code .ln{display:block;white-space:pre;padding:0 18px 0 0}
+pre.code .ln:before{counter-increment:ln;content:counter(ln);display:inline-block;width:3.6em;
+  text-align:right;padding-right:1.3em;color:#5C574F;user-select:none}
+.md{padding:4px 0 60px;font-size:14.5px;line-height:1.95;max-width:70ch;color:var(--ink2)}
+.md h1{font-size:40px;margin:24px 0 14px}
+.md h2{font-size:22px;letter-spacing:-.02em;text-transform:none;color:var(--ink);
+  margin:30px 0 12px;font-weight:800;border-bottom:1px solid var(--line2);padding-bottom:8px}
+.md h3{font-size:14px;margin:22px 0 8px;color:var(--ink);font-weight:800}
+.md p{margin:12px 0}
+.md code{background:var(--ink);color:var(--paper);padding:1px 6px;font-size:12px;font-family:var(--mono)}
+.md pre{background:#0D0D0D;padding:15px 18px;overflow:auto;font-size:12px;line-height:1.8}
+.md pre code{background:none;color:#E8E3D8;padding:0}
+.md ul,.md ol{margin:12px 0;padding-left:22px}
+.md li{margin:5px 0}
+.md blockquote{border-left:4px solid var(--accent);margin:16px 0;padding:2px 0 2px 16px;
+  color:var(--ink2);font-weight:500}
+.md a{color:var(--accent);text-decoration:none;border-bottom:1px solid var(--accent)}
+.md hr{border:0;border-top:2px solid var(--line);margin:26px 0}
+.md table{border-collapse:collapse;font-size:12.5px;margin:16px 0}
+.md th,.md td{border:1px solid var(--line);padding:7px 12px;text-align:left}
+.md th{background:var(--ink);color:var(--paper);font-weight:700}
+
+
+/* 返回：历史 / 上一级 */
+.nav{display:flex;border:2px solid var(--line);margin-right:2px}
+.nav button{font:inherit;font-family:var(--mono);font-size:11px;font-weight:800;letter-spacing:.03em;
+  background:var(--paper);color:var(--ink);border:0;border-right:2px solid var(--line);
+  padding:7px 12px;cursor:pointer;white-space:nowrap}
+.nav button:last-child{border-right:0}
+.nav button:hover:not(:disabled){background:var(--ink);color:var(--paper)}
+.nav button:disabled{opacity:.26;cursor:default}
+.cell{cursor:pointer}
+.cell .cap .go{float:right;font-size:9px;opacity:0;transition:opacity .16s}
+.cell:hover .cap .go{opacity:.75}
+
+/* 3D 星核 */
+#orb{position:fixed;inset:0;z-index:900;background:#0B0B0B;display:none;overflow:hidden}
+#orb.on{display:block}
+#orb .halo{position:absolute;left:50%;top:50%;width:560px;height:560px;margin:-280px 0 0 -280px;
+  border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle,rgba(228,87,46,.30),rgba(228,87,46,.06) 46%,transparent 68%);
+  filter:blur(30px)}
+#orb .core{position:absolute;left:50%;top:50%;width:268px;height:268px;margin:-134px 0 0 -134px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+  color:#F3F0E8;pointer-events:none;z-index:1450;
+  background:radial-gradient(circle,#0B0B0B 0 34%,rgba(11,11,11,.88) 52%,transparent 73%)}
+#orb .core b{display:block;font-size:64px;line-height:.86;letter-spacing:-.06em;font-weight:800}
+#orb .core span{display:block;margin-top:12px;font-family:var(--mono);font-size:10px;
+  letter-spacing:.26em;color:#E4572E;text-transform:uppercase}
+#orb .nodes{position:absolute;inset:0}
+#orb .n{position:absolute;left:50%;top:50%;will-change:transform;
+  font-family:var(--mono);font-size:11px;line-height:1;color:#F3F0E8;white-space:nowrap;cursor:pointer;
+  padding:6px 10px;border:1px solid rgba(243,240,232,.26);background:rgba(243,240,232,.045);
+  transform-origin:50% 50%;backdrop-filter:blur(2px);
+  transition:background .16s,border-color .16s,color .16s}
+#orb .n:hover{background:#E4572E;border-color:#E4572E;color:#0B0B0B}
+#orb .n i{display:inline-block;width:5px;height:5px;background:#E4572E;margin-right:7px;vertical-align:1px}
+#orb .n:hover i{background:#0B0B0B}
+#orb .n em{font-style:normal;opacity:.45;margin-left:8px;font-size:10px}
+#orb .hint{position:absolute;left:0;right:0;bottom:24px;text-align:center;pointer-events:none;z-index:1600;
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:rgba(243,240,232,.4)}
+#orb .x{position:absolute;right:26px;top:24px;z-index:4;background:none;cursor:pointer;
+  border:1px solid rgba(243,240,232,.3);color:#F3F0E8;font-family:var(--mono);font-size:10.5px;
+  letter-spacing:.14em;padding:8px 15px}
+#orb .x:hover{background:#E4572E;border-color:#E4572E;color:#0B0B0B}
+
+/* 首页展开的小面板 */
+.panel{margin-top:22px;border:2px solid var(--line);background:var(--paper2);animation:rise .4s var(--ease) both}
+.panel h3{margin:0;padding:11px 16px;background:var(--ink);color:var(--paper);
+  font-family:var(--mono);font-size:10px;letter-spacing:.16em;font-weight:700;display:flex}
+.panel h3 span{margin-left:auto;opacity:.6;font-weight:400}
+.panel .row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-top:1px solid var(--line2)}
+.panel .row:first-of-type{border-top:0}
+.panel .row b{font-size:13px;font-weight:800;min-width:120px}
+.panel .row code{font-family:var(--mono);font-size:11px;background:var(--ink);color:var(--paper);padding:2px 7px}
+.panel .row i{font-style:normal;font-size:11.5px;color:var(--dim);flex:1}
+.panel .row .st{font-family:var(--mono);font-size:10px;letter-spacing:.1em}
+.panel .row .st.on{color:#2F7A46}
+.panel .row .st.off{color:#B0381E}
+
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.view>*{animation:rise .7s var(--ease) both}
+@media (prefers-reduced-motion:reduce){.view>*{animation:none}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand" id="brand" title="回首页"><b>档案库</b><small id="root">—</small></div>
+  <div class="stat" id="stat">—</div>
+  <div class="search"><input id="q" placeholder="搜名字 / 别名 / 端口 / 说明…" autocomplete="off" spellcheck="false"><button class="coll" id="coll" title="收起所有展开的层级，只留三个分组">收起</button></div>
+  <div class="tree" id="tree"></div>
+</aside>
+<main>
+  <div class="bar">
+    <div class="nav"><button id="b-back" disabled title="回到上一个看过的地方（Alt+←）">← 上一次</button><button id="b-up" disabled title="回到当前这一层的上级（Backspace）">↑ 上一级</button></div>
+    <div class="crumb" id="crumb">—</div>
+    <button class="btn" id="b-reveal" disabled>在文件夹中显示</button>
+    <button class="btn pri" id="b-open" disabled>用默认程序打开</button>
+  </div>
+  <div class="view" id="view"><div class="empty">左边选一项，或者直接搜。</div></div>
+</main>
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const kb = (n) => (n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : n >= 1024 ? (n / 1024).toFixed(0) + ' KB' : n + ' B');
+const j = async (u, o) => (await fetch(u, o)).json();
+
+const TEXT_EXT = new Set(['md','markdown','txt','text','json','jsonl','ndjson','js','mjs','cjs','ts','tsx','jsx',
+  'java','py','pyw','css','scss','html','htm','xml','yml','yaml','log','csv','tsv','bat','cmd','ps1','sh','bash',
+  'conf','cfg','ini','toml','sql','c','h','cpp','hpp','cc','cs','go','rs','php','rb','vue','svelte','gradle',
+  'properties','env','gitignore','editorconfig','mdc']);
+const IMG_EXT = new Set(['png','jpg','jpeg','gif','webp','bmp','svg','ico','avif']);
+const VID_EXT = new Set(['mp4','webm','mov','mkv','m4v']);
+const AUD_EXT = new Set(['mp3','wav','ogg','flac','m4a','aac','opus','wma']);
+const extOf = (p) => { const b = String(p || '').split(/[\\/]/).pop(); const i = b.lastIndexOf('.'); return i > 0 ? b.slice(i + 1).toLowerCase() : ''; };
+const kindOf = (p) => { const e = extOf(p); return IMG_EXT.has(e) ? 'image' : VID_EXT.has(e) ? 'video' : AUD_EXT.has(e) ? 'audio' : e === 'pdf' ? 'pdf' : TEXT_EXT.has(e) ? 'text' : 'other'; };
+
+const SVG = {
+  dir: '<svg viewBox="0 0 16 16"><path d="M1.5 3.5h4l1.4 1.8h7.6v7.2H1.5z"/></svg>',
+  text: '<svg viewBox="0 0 16 16"><path d="M3.5 1.8h6l3 3v9.4h-9z"/><path d="M9.5 1.8v3h3"/><path d="M5.4 8h5.2M5.4 10.4h5.2"/></svg>',
+  image: '<svg viewBox="0 0 16 16"><rect x="2" y="3" width="12" height="10" rx="1.2"/><circle cx="5.6" cy="6.2" r="1"/><path d="M2.6 11.2l3.1-3 2.2 2.1 2-1.9 3.4 3.2"/></svg>',
+  video: '<svg viewBox="0 0 16 16"><rect x="1.8" y="3.4" width="9" height="9.2" rx="1.2"/><path d="M11 6.6l3.2-1.8v6.4L11 9.4z"/></svg>',
+  audio: '<svg viewBox="0 0 16 16"><path d="M6 10.6V4l6-1.4v6.6"/><circle cx="4.6" cy="11.2" r="1.5"/><circle cx="10.6" cy="9.9" r="1.5"/></svg>',
+  pdf: '<svg viewBox="0 0 16 16"><path d="M3.5 1.8h6l3 3v9.4h-9z"/><path d="M9.5 1.8v3h3"/><path d="M5.6 9.2h4.8"/></svg>',
+  other: '<svg viewBox="0 0 16 16"><rect x="3" y="2" width="10" height="12" rx="1.2"/><path d="M5.6 6h4.8M5.6 8.6h4.8"/></svg>',
+  proj: '<svg viewBox="0 0 16 16" style="fill:currentColor;stroke:none;opacity:.5"><rect x="5" y="5" width="6" height="6" rx="1"/></svg>',
+  ext: '<svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="2.6"/><path d="M8 1.6v3M8 11.4v3M1.6 8h3M11.4 8h3"/></svg>',
+};
+
+const S = {
+  open: new Set(),          // 已展开的节点 key（层级用 / 分隔，便于整支收起）
+  kids: new Map(),          // 目录路径 -> 子项
+  groups: [], stats: {},
+  sel: null,                // 选中的条目 id
+  file: null,               // 选中的文件相对路径
+  hits: null,
+  loading: new Set(),
+  hist: [],                 // 浏览历史栈：跨盘、跨条目都能回
+  cur: { kind: 'home' },    // 当前所在：home | item | file
+};
+
+/* ── 导航：历史栈 + 层级 ─────────────────────
+   「上一次」＝时序，回到你刚才看的那一屏，哪怕已经跳到别的条目。
+   「上一级」＝层级，只往父级走：文件 → 所属条目 → 首页。     */
+function navPush(e) {
+  const l = S.hist[S.hist.length - 1];
+  const k = (x) => x.kind + '|' + (x.id || x.p || '');
+  if (!l || k(l) !== k(e)) S.hist.push(e);
+  if (S.hist.length > 100) S.hist.shift();
+  S.cur = e;
+  syncNav();
+}
+function syncNav() {
+  const bk = $('#b-back'), up = $('#b-up');
+  if (bk) bk.disabled = S.hist.length === 0;
+  if (up) up.disabled = S.cur.kind === 'home';
+}
+async function goBack() {
+  // hist 末尾是「我现在所在」，回到前一个
+  const k = (x) => x.kind + '|' + (x.id || x.p || '');
+  if (S.hist.length && k(S.hist[S.hist.length - 1]) === k(S.cur)) S.hist.pop();
+  const prev = S.hist[S.hist.length - 1];
+  if (!prev) { await home(true); S.cur = { kind: 'home' }; syncNav(); return; }
+  await restore(prev);
+}
+async function goUp() {
+  if (S.cur.kind === 'file' && S.sel) { S.file = null; renderTree(); await showItem(S.sel, true); S.cur = { kind: 'item', id: S.sel }; syncNav(); return; }
+  await home(true);
+  S.cur = { kind: 'home' };
+  syncNav();
+}
+async function restore(e) {
+  if (e.kind === 'home') { await home(true); S.cur = e; syncNav(); return; }
+  if (e.kind === 'item') { S.sel = e.id; S.file = null; openChain(e.id); renderTree(); await showItem(e.id, true); S.cur = e; syncNav(); return; }
+  if (e.kind === 'file') { S.file = e.p; renderTree(); await showFile(e.p, true); S.cur = e; syncNav(); return; }
+}
+
+/* 缩进：lv 层，左边画 lv 条竖线，一眼看出上下级 */
+function applyIndent(el, lv) {
+  el.style.setProperty('--lv', lv);
+  if (!lv) return;
+  const box = document.createElement('span');
+  box.className = 'ind';
+  for (let i = 0; i < lv; i++) box.appendChild(document.createElement('i'));
+  el.insertBefore(box, el.firstChild);
+}
+
+function nodeRow({ key, label, icon, arrow, open, cls = '', onclick, sel = false, dotClass = '', count = '', lead = '', lv = 0, title = '' }) {
+  const el = document.createElement('div');
+  el.className = 'nd' + (cls ? ' ' + cls : '') + (sel ? ' on' : '');
+  el.dataset.key = key;
+  if (title) el.title = title;
+  el.innerHTML =
+    `<span class="ar${arrow === null ? ' leaf' : open ? ' open' : ''}" data-ar="1">${arrow === null ? '' : '▶'}</span>` +
+    (dotClass ? `<span class="dot ${esc(dotClass)}"></span>` : `<span class="ic">${SVG[icon] || ''}</span>`) +
+    (lead ? `<span class="idw">${esc(lead)}</span>` : '') +
+    `<span class="nm">${esc(label)}</span>` +
+    (count !== '' ? `<span class="ct">${esc(count)}</span>` : '');
+  el.onclick = onclick;
+  applyIndent(el, lv);
+  return el;
+}
+
+function renderTree() {
+  const box = $('#tree');
+  const y = box.scrollTop;      // 重绘保住滚动位置，别让人忘了刚点到哪
+  box.innerHTML = '';
+  if (S.hits) {
+    if (!S.hits.length) {
+      box.innerHTML = `<div class="note" style="padding:14px 18px">0 命中。换个说法：同义词、端口号、文件名。</div>`;
+      return;
+    }
+    box.appendChild(nodeRow({ key: 'hits', label: `命中 ${S.hits.length}`, cls: 'grp', arrow: null, onclick: () => { } }));
+    for (const r of S.hits) box.appendChild(itemRow(r, 1));
+    box.scrollTop = 0;
+    return;
+  }
+  for (const g of S.groups) {
+    const gk = 'g:' + g.type;
+    const open = S.open.has(gk);
+    box.appendChild(nodeRow({
+      key: gk, label: `${g.label} · ${g.items.length}`, cls: 'grp', arrow: '▶', open, lv: 0,
+      onclick: (e) => { e.stopPropagation(); flip(gk, e.shiftKey); },
+    }));
+    if (!open) continue;
+    if (g.type === 'skill') renderSkillTree(box, g);
+    else for (const r of g.items) renderItem(box, g.type, r, 1);
+  }
+  box.scrollTop = y;
+}
+
+/* 技能按 cls 逐级建树：SKILL/<分类>/<子类>/<技能> 任意深度 */
+function renderSkillTree(box, g) {
+  const root = { kids: new Map(), items: [] };
+  for (const r of g.items) {
+    const parts = String(r.cls || '未分类').split('/').filter(Boolean);
+    let node = root;
+    for (const name of parts) {
+      if (!node.kids.has(name)) node.kids.set(name, { kids: new Map(), items: [] });
+      node = node.kids.get(name);
+    }
+    node.items.push(r);
+  }
+  (function walk(node, pre, lv) {
+    for (const name of [...node.kids.keys()].sort((a, b) => a.localeCompare(b, 'zh'))) {
+      const kid = node.kids.get(name);
+      const key = 'c:' + pre + name;
+      const open = S.open.has(key);
+      const total = kid.items.length + countItems(kid);
+      const el = nodeRow({
+        key, label: name, cls: 'cat', arrow: '▶', open, lv, count: total,
+        onclick: (e) => { e.stopPropagation(); flip(key, e.shiftKey); },
+      });
+      box.appendChild(el);
+      if (open) walk(kid, pre + name + '/', lv + 1);
+    }
+    for (const r of node.items.sort((a, b) => a.name.localeCompare(b.name, 'zh'))) {
+      renderItem(box, 'skill', r, lv);
+    }
+  })(root, '', 1);
+}
+function countItems(node) {
+  let n = 0;
+  for (const k of node.kids.values()) n += k.items.length + countItems(k);
+  return n;
+}
+
+/* 收起/展开：普通点只切自己（下级状态保留）；Shift 点连整支一起收 */
+function flip(key, deep) {
+  const box = $('#tree');
+  const y = box.scrollTop;
+  if (S.open.has(key)) {
+    S.open.delete(key);
+    if (deep) for (const k of [...S.open]) if (k.startsWith(key + '/')) S.open.delete(k);
+  } else {
+    S.open.add(key);
+  }
+  renderTree();
+  box.scrollTop = y;
+  const el = box.querySelector(`[data-key="${CSS.escape(key)}"]`);
+  if (el) { el.classList.add('flash'); setTimeout(() => el.classList.remove('flash'), 620); }
+}
+
+function itemRow(r, lv = 1) {
+  const key = 'i:' + r.id;
+  const open = S.open.has(key);
+  const st = r.status || 'active';
+  const bad = st === 'missing' || st === 'paused' || st === 'dead';
+  const count = r.type === 'project' && r.implCount != null ? `${r.recCount || 0}·${r.implCount}`
+    : r.port ? ':' + r.port : '';
+  return nodeRow({
+    key, label: r.name, lv,
+    dotClass: bad ? st : '', icon: r.type === 'external' ? 'ext' : '', lead: r.id,
+    arrow: r.type === 'external' ? null : '▶', open, sel: S.sel === r.id, count,
+    title: r.type === 'external' ? '' : '点箭头只展开；点名字看详情；Shift+点 收起整支',
+    onclick: (e) => {
+      e.stopPropagation();
+      if (r.type === 'external' || !r.path) { S.sel = r.id; S.file = null; renderTree(); showItem(r.id); return; }
+      const onArrow = e.target.dataset && e.target.dataset.ar === '1';
+      if (onArrow) { flip(key, e.shiftKey); return; }
+      if (e.shiftKey) { flip(key, true); return; }
+      S.sel = r.id; S.file = null;
+      if (!S.open.has(key)) S.open.add(key);
+      renderTree(); showItem(r.id);
+    },
+  });
+}
+
+function renderItem(box, type, r, lv) {
+  box.appendChild(itemRow({ ...r, type: r.type || type }, lv));
+  const key = 'i:' + r.id;
+  if (!S.open.has(key) || !r.path) return;
+  // 项目：记录 + 实现；技能：整个技能目录
+  if (type === 'project') {
+    for (const sub of ['记录', '实现']) {
+      const p = r.path + '/' + sub;
+      const dk = key + '/' + sub;
+      box.appendChild(dirRow(p, dk, sub, lv + 1));
+      if (S.open.has(dk)) renderKids(box, p, dk, lv + 2);
+    }
+  } else {
+    const dk = key + '/-';
+    if (S.open.has(dk)) renderKids(box, r.path, dk, lv + 1);
+    else { S.open.add(dk); renderKids(box, r.path, dk, lv + 1); }
+  }
+}
+
+function dirRow(p, key, label, lv) {
+  const open = S.open.has(key);
+  const el = nodeRow({
+    key, label, icon: 'dir', arrow: '▶', open, lv,
+    onclick: (e) => { e.stopPropagation(); flip(key, e.shiftKey); },
+  });
+  return el;
+}
+
+function renderKids(box, p, pkey, lv) {
+  if (!S.kids.has(p)) {
+    loadDir(p);
+    const ph = document.createElement('div');
+    ph.className = 'note';
+    ph.style.paddingLeft = (24 + lv * 14) + 'px';
+    ph.textContent = '读取中…';
+    box.appendChild(ph);
+    return;
+  }
+  for (const it of S.kids.get(p)) {
+    const kk = pkey + '/' + it.name;
+    if (it.dir) {
+      box.appendChild(dirRow(it.rel, kk, it.name, lv));
+      if (S.open.has(kk)) renderKids(box, it.rel, kk, lv + 1);
+    } else {
+      box.appendChild(fileRow(it, lv, kk));
+    }
+  }
+}
+
+async function loadDir(p) {
+  if (S.loading.has(p)) return;
+  S.loading.add(p);
+  const y = $('#tree').scrollTop;
+  try {
+    const d = await j('/api/dir?p=' + encodeURIComponent(p));
+    S.kids.set(p, d.ok ? d.items : []);
+  } catch { S.kids.set(p, []); }
+  S.loading.delete(p);
+  renderTree();
+  $('#tree').scrollTop = y;
+}
+
+function fileRow(f, lv, key) {
+  const el = nodeRow({
+    key: key || 'f:' + f.rel, label: f.name, icon: iconFor(f.name), arrow: null, lv,
+    sel: S.file === f.rel, count: kb(f.size),
+    onclick: (e) => {
+      e.stopPropagation();
+      const y = $('#tree').scrollTop;
+      S.file = f.rel; renderTree(); $('#tree').scrollTop = y; showFile(f.rel);
+    },
+  });
+  return el;
+}
+
+function iconFor(name) {
+  const k = kindOf(name);
+  return k;
+}
+
+/* ── 右栏 ─────────────────────────────────── */
+function setCrumb(t) { $('#crumb').textContent = t || '—'; }
+function setBtns(relPath) {
+  const on = !!relPath;
+  $('#b-open').disabled = !on;
+  $('#b-reveal').disabled = !on;
+}
+
+async function home(fromNav) {
+  if (!fromNav) navPush({ kind: 'home' });
+  S.sel = null; S.file = null; setCrumb('—'); setBtns(null);
+  const all = S.groups.flatMap((g) => g.items.map((x) => ({ ...x, type: g.type })));
+  const recent = all.filter((x) => x.lastChange)
+    .sort((a, b) => String(b.lastChange).localeCompare(String(a.lastChange))).slice(0, 7);
+  const c = S.stats || {};
+  const cell = (n, cap, note, go, key) =>
+    `<div class="cell"${go ? ` data-orb="${key}"` : ''}><span class="num">${n}</span>` +
+    `<span class="cap">${cap}${go ? '<b class="go">进入 ↗</b>' : ''}</span>` +
+    (note ? `<span class="cnote">${note}</span>` : '') + `</div>`;
+  const V = $('#view');
+  V.innerHTML = `
+    <div class="kicker">MyAgent · 存储架构 V9</div>
+    <h1 class="hero">档案库</h1>
+    <p class="lede">项目与技能都从磁盘重算，索引只是投影。一条 <code>find</code> 就能定位，
+      不用再东跑西跑；每个项目都带着出处与因果，改之前先看一眼为什么建的。</p>
+    <div class="bento">
+      ${cell(c.project || 0, '项目', '记录 + 实现', 'click', 'project')}
+      ${cell(c.skill || 0, '技能', '有 SKILL.md 的目录', 'click', 'skill')}
+      ${cell(c.external || 0, '常驻服务', '占着端口的那几个', 'click', 'external')}
+      ${cell((c.project || 0) + (c.skill || 0) + (c.external || 0), '索引条目', '每次请求现读，不是缓存', 'click', 'index')}
+    </div>
+    <div id="panel"></div>
+    ${c.missing ? `<div class="miss">有 ${c.missing} 项在磁盘上找不到了（标记 missing）。目录被删或改名，跑一次 reindex 确认。</div>` : ''}
+    <h2>最近改动</h2>
+    <div class="rlist">
+      ${recent.map((x) => `<div class="rrow" data-id="${esc(x.id)}">
+        <span class="rid">${esc(x.id)}</span>
+        <span class="rnm">${esc(x.name)}</span>
+        <span class="rtm">${esc(x.lastChange)}</span></div>`).join('') || '<div class="note">还没有改动记录</div>'}
+    </div>
+    <h2>三条入口</h2>
+    <div class="tips">
+      <div class="tip"><b>命令行</b><code>node bin/find.mjs 语音</code><span>搜名字、别名、端口都行</span></div>
+      <div class="tip"><b>浏览器</b><code>node bin/serve.mjs</code><span>就是你现在看的这个</span></div>
+      <div class="tip"><b>DSH 插件</b><code>档案库面板</code><span>同源同数据，不会两套结果</span></div>
+    </div>`;
+  V.querySelectorAll('.rrow').forEach((el) => {
+    el.onclick = () => { S.sel = el.dataset.id; openChain(el.dataset.id); renderTree(); showItem(el.dataset.id); };
+  });
+  V.querySelectorAll('.cell[data-orb]').forEach((el) => {
+    el.onclick = () => onCell(el.dataset.orb);
+  });
+}
+
+/* 四格入口：项目/技能 → 星核；服务/索引 → 展开面板 */
+function onCell(kind) {
+  if (kind === 'project' || kind === 'skill') return openOrb(kind);
+  if (kind === 'external') return panelExternal();
+  return panelIndex();
+}
+
+function panelExternal() {
+  const box = $('#panel');
+  if (!box) return;
+  if (box.dataset.k === 'external') { box.innerHTML = ''; delete box.dataset.k; return; }
+  const ext = S.groups.find((g) => g.type === 'external');
+  const rows = (ext ? ext.items : []).map((r) => `
+    <div class="row"><b>${esc(r.name)}</b><code>${r.port ? ':' + esc(r.port) : '—'}</code>
+      <i>${esc(r.desc || '')}</i>
+      <span class="st ${r.status === 'planned' ? 'off' : 'on'}">${esc(r.status || 'active')}</span></div>`).join('');
+  box.dataset.k = 'external';
+  box.innerHTML = `<div class="panel"><h3>常驻服务<span>跑在这台机器上，档案库只管记账</span></h3>
+    ${rows || '<div class="row"><i>还没有登记外部依赖</i></div>'}</div>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function panelIndex() {
+  const box = $('#panel');
+  if (!box) return;
+  if (box.dataset.k === 'index') { box.innerHTML = ''; delete box.dataset.k; return; }
+  box.dataset.k = 'index';
+  box.innerHTML = `<div class="panel"><h3>索引是怎么来的<span>一条单向重算，不是同步</span></h3>
+    <div class="row"><b>磁盘</b><code>项目/ · SKILL/</code><i>唯一真源。目录里有什么，索引就有什么。</i></div>
+    <div class="row"><b>索引</b><code>索引/db.jsonl</code><i>一行一项。reindex 扫一层目录重算，0.17 秒。</i></div>
+    <div class="row"><b>视图</b><code>总索引.md · 00-入口.md</code><i>渲染出来的只读投影，手改会被下次重算覆盖。</i></div>
+    <div class="row"><b>查询</b><code>find 关键词</code><i>先精确匹配名字/别名/说明，0 命中才降级语义候选。</i></div></div>`;
+  box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ── 星核：点开四格里的项目/技能，中心炸开成球 ───────────── */
+const ORB = { raf: 0, yaw: 0, pitch: -0.1, vx: 0, drag: null, nodes: [], t0: 0, zoom: 1 };
+
+function openOrb(kind) {
+  const g = S.groups.find((x) => x.type === kind);
+  if (!g || !g.items.length) return;
+  const items = g.items.slice();
+  const n = items.length;
+  const R = Math.round(250 + Math.min(200, Math.sqrt(n) * 28));
+  const GA = Math.PI * (3 - Math.sqrt(5));
+  const ns = items.map((r, i) => {
+    const y = 1 - (i + 0.5) * 2 / n;
+    const rad = Math.sqrt(Math.max(0, 1 - y * y));
+    const th = GA * i;
+    return { r, x: Math.cos(th) * rad * R, y: y * R, z: Math.sin(th) * rad * R };
+  });
+
+  let el = $('#orb');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'orb';
+    document.body.appendChild(el);
+  }
+  el.innerHTML = `<button class="x">ESC 关闭</button>
+    <div class="halo"></div>
+    <div class="core"><b>${n}</b><span>${kind === 'skill' ? 'SKILL' : 'PROJECT'}</span></div>
+    <div class="nodes"></div>
+    <div class="hint">拖动旋转 · 滚轮缩放 · 点节点进入 · ESC 返回</div>`;
+  el.classList.add('on');
+
+  const box = el.querySelector('.nodes');
+  ORB.nodes = ns.map((o) => {
+    const d = document.createElement('div');
+    d.className = 'n';
+    d.innerHTML = `<i></i>${esc(o.r.name)}` + (o.r.id ? `<em>${esc(o.r.id)}</em>` : '');
+    d.onclick = (ev) => { ev.stopPropagation(); closeOrb(); S.sel = o.r.id; openChain(o.r.id); renderTree(); showItem(o.r.id); };
+    box.appendChild(d);
+    return { ...o, el: d };
+  });
+  ORB.yaw = 0; ORB.pitch = -0.1; ORB.zoom = 1.1; ORB.vx = 0;
+  ORB.t0 = performance.now();
+
+  el.onmousedown = (e) => { ORB.drag = { x: e.clientX, y: e.clientY, yaw: ORB.yaw, pitch: ORB.pitch }; };
+  el.onmousemove = (e) => {
+    if (!ORB.drag) return;
+    ORB.yaw = ORB.drag.yaw + (e.clientX - ORB.drag.x) * 0.006;
+    ORB.pitch = Math.max(-1.2, Math.min(1.2, ORB.drag.pitch - (e.clientY - ORB.drag.y) * 0.005));
+  };
+  el.onmouseup = () => { ORB.drag = null; };
+  el.onmouseleave = () => { ORB.drag = null; };
+  el.onwheel = (e) => { e.preventDefault(); ORB.zoom = Math.max(0.55, Math.min(1.9, ORB.zoom * (e.deltaY > 0 ? 0.92 : 1.08))); };
+  el.querySelector('.x').onclick = closeOrb;
+
+  cancelAnimationFrame(ORB.raf);
+  const ease = (t) => 1 - Math.pow(1 - t, 3);
+  const tick = () => {
+    const now = performance.now();
+    if (!ORB.drag) { ORB.yaw += 0.0022 + ORB.vx; ORB.vx *= 0.94; }
+    const cy = Math.cos(ORB.yaw), sy = Math.sin(ORB.yaw);
+    const cx = Math.cos(ORB.pitch), sx = Math.sin(ORB.pitch);
+    const FOV = 1200;
+    ORB.nodes.forEach((o, i) => {
+      const p = Math.max(0, Math.min(1, (now - ORB.t0 - i * 26) / 760));
+      const k = ease(p) * ORB.zoom;
+      const x1 = o.x * cy + o.z * sy;
+      const z1 = -o.x * sy + o.z * cy;
+      const y2 = o.y * cx - z1 * sx;
+      const z2 = o.y * sx + z1 * cx;
+      const per = FOV / (FOV + z2);
+      const s = per * (0.42 + 0.58 * p);
+      const dx = x1 * k * per * 0.96, dy = y2 * k * per * 0.74;
+      o.el.style.transform = `translate3d(${dx.toFixed(1)}px,${dy.toFixed(1)}px,0) translate(-50%,-50%) scale(${s.toFixed(3)})`;
+      o.el.style.opacity = (p * (z2 > 40 ? 0.4 : 1)).toFixed(3);
+      o.el.style.zIndex = String(Math.max(400, Math.min(1400, 1000 - Math.round(z2))));
+      o.el.style.filter = z2 > 120 ? 'blur(.5px)' : 'none';
+    });
+    ORB.raf = requestAnimationFrame(tick);
+  };
+  ORB.raf = requestAnimationFrame(tick);
+}
+
+function closeOrb() {
+  cancelAnimationFrame(ORB.raf);
+  ORB.raf = 0;
+  const el = $('#orb');
+  if (!el) return;
+  el.classList.remove('on');
+  el.innerHTML = '';
+}
+
+async function showItem(id, fromNav) {
+  if (!fromNav) navPush({ kind: 'item', id });
+  S.file = null; setBtns(null);
+  const d = await j('/api/item?id=' + encodeURIComponent(id));
+  if (!d.item) { $('#view').innerHTML = '<div class="empty">没找到</div>'; return; }
+  const r = d.item;
+  setCrumb(r.id + ' · ' + (r.path || ''));
+  const V = $('#view');
+  V.innerHTML = `
+    <h1>${esc(r.name)}</h1>
+    <div class="sub">${esc(r.id)} · ${esc(r.path || '')}${r.port ? ' · :' + esc(r.port) : ''}${r.status && r.status !== 'active' ? ' · ' + esc(r.status) : ''}</div>
+    ${r.status === 'missing' ? '<div class="miss">磁盘上找不到这个目录了。删了、改名了，或者索引该重跑。</div>' : ''}
+    <p class="desc">${esc(r.desc || '')}</p>
+    <dl class="meta">
+      <dt>出处</dt><dd>${esc(r.origin || '[待补]')}</dd>
+      <dt>为什么</dt><dd>${r.why && r.why !== '[待补]' ? esc(r.why) : '<span style="color:var(--warn)">⚠ [待补] —— 改之前先问清楚为什么建的</span>'}</dd>
+      <dt>别名</dt><dd>${(r.kw || []).map((k) => `<span class="tag">${esc(k)}</span>`).join('') || '—'}</dd>
+      <dt>关联</dt><dd>${d.related.map((x) => x.id ? `<span class="chip" data-id="${esc(x.id)}">${esc(x.name)}</span>` : `<span class="chip" style="opacity:.45">${esc(x.name)}</span>`).join('') || '—'}</dd>
+      <dt>最近改动</dt><dd>${esc(r.lastChange || '—')}</dd>
+    </dl>
+    ${d.isSkill
+      ? `<h2>技能目录 · ${d.files.length}</h2>${fileList(d.files)}`
+      : `<h2>记录 · ${d.record.length}</h2>${fileList(d.record)}
+    <h2>实现 · ${d.impl.length}</h2>${fileList(d.impl)}`}
+  `;
+  V.querySelectorAll('.f[data-p]').forEach((el) => el.onclick = () => { S.file = el.dataset.p; renderTree(); showFile(el.dataset.p); });
+  V.querySelectorAll('.chip[data-id]').forEach((el) => el.onclick = () => { S.sel = el.dataset.id; openChain(el.dataset.id); renderTree(); showItem(el.dataset.id); });
+  V.scrollTop = 0;
+}
+
+function fileList(arr) {
+  if (!arr.length) return '<div class="note">空</div>';
+  return '<div class="pv"><div class="pv-b">' + arr.map((f) => `
+    <div class="f" data-p="${esc(f.rel)}" style="display:flex;gap:9px;padding:6px 12px;cursor:pointer;border-top:1px solid var(--line2);font-size:13px;align-items:center">
+      <span style="opacity:.8">${f.dir ? SVG.dir : (SVG[iconFor(f.name)] || SVG.other)}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(f.name)}</span>
+      <span style="color:var(--faint);font-size:11px;font-family:ui-monospace,Consolas,monospace">${f.dir ? '' : kb(f.size)}</span>
+    </div>`).join('') + '</div></div>';
+}
+
+async function showFile(rel, fromNav) {
+  if (!fromNav) navPush({ kind: 'file', p: rel });
+  setCrumb(rel);
+  setBtns(rel);
+  const k = kindOf(rel);
+  const V = $('#view');
+  const url = '/api/raw?p=' + encodeURIComponent(rel);
+  const head = `<div class="pv-h"><span class="nm">${esc(rel)}</span><span>${esc(extOf(rel) || 'file')}</span></div>`;
+
+  if (k === 'image') {
+    V.innerHTML = `<div class="pv">${head}<div class="pv-b" style="background:#0D0D0D"><img src="${url}" alt=""></div></div>`;
+    return;
+  }
+  if (k === 'video') {
+    V.innerHTML = `<div class="pv">${head}<div class="pv-b" style="background:#0D0D0D"><video src="${url}" controls preload="metadata"></video></div></div>`;
+    return;
+  }
+  if (k === 'audio') {
+    V.innerHTML = `<div class="pv">${head}<div class="pv-b" style="background:#0D0D0D"><audio src="${url}" controls preload="metadata"></audio></div></div>`;
+    return;
+  }
+  if (k === 'pdf') {
+    V.innerHTML = `<div class="pv">${head}<div class="pv-b" style="background:#0D0D0D"><iframe src="${url}"></iframe></div></div>`;
+    return;
+  }
+  if (k === 'other') {
+    V.innerHTML = `<div class="empty">这个格式不预览。<br>点右上「用默认程序打开」。</div>`;
+    return;
+  }
+
+  V.innerHTML = `<div class="pv">${head}<div class="pv-b"><div style="padding:20px;color:var(--faint);font-size:13px">读取中…</div></div></div>`;
+  const d = await j('/api/file?p=' + encodeURIComponent(rel));
+  const body = d.ok
+    ? (extOf(rel) === 'md' || extOf(rel) === 'markdown' ? `<div class="md">${md(d.text)}</div>` : codeBlock(d.text))
+    : `<div style="padding:16px;color:var(--warn);font-size:13px">${esc(d.reason || '读不了')}</div>`;
+  V.innerHTML = `<div class="pv">${head}<div class="pv-b">${body}</div></div>`;
+}
+
+function codeBlock(t) {
+  const lines = String(t || '').replace(/\r\n/g, '\n').split('\n');
+  if (lines.length > 6000) return `<div style="padding:16px;color:var(--faint);font-size:13px">文件太大（${lines.length} 行），不在这里渲染。用默认程序打开。</div>`;
+  return '<pre class="code">' + lines.map((l) => `<span class="ln">${esc(l) || ' '}</span>`).join('') + '</pre>';
+}
+
+/* 极简 Markdown：够看，不做完整规范 */
+function md(src) {
+  const blocks = String(src || '').replace(/\r\n/g, '\n').split(/\n{2,}/);
+  const out = [];
+  for (let b of blocks) {
+    if (!b.trim()) continue;
+    const fence = b.match(/^```(\w*)\n([\s\S]*?)```?$/);
+    if (fence) { out.push(`<pre><code>${esc(fence[2])}</code></pre>`); continue; }
+    if (/^\s*([-*_])\1{2,}\s*$/.test(b.trim())) { out.push('<hr>'); continue; }
+    const lines = b.split('\n');
+    if (lines.every((l) => /^#{1,6}\s/.test(l))) {
+      out.push(lines.map((l) => {
+        const m = l.match(/^(#{1,6})\s+(.*)$/);
+        const n = Math.min(m[1].length, 3);
+        return `<h${n}>${inline(m[2])}</h${n}>`;
+      }).join(''));
+      continue;
+    }
+    if (lines.every((l) => /^\s*>\s?/.test(l))) {
+      out.push('<blockquote>' + lines.map((l) => inline(l.replace(/^\s*>\s?/, ''))).join('<br>') + '</blockquote>');
+      continue;
+    }
+    if (lines.every((l) => /^\s*([-*+]|\d+\.)\s/.test(l))) {
+      const ord = /^\s*\d+\./.test(lines[0]);
+      out.push(`<${ord ? 'ol' : 'ul'}>` + lines.map((l) => `<li>${inline(l.replace(/^\s*([-*+]|\d+\.)\s/, ''))}</li>`).join('') + `</${ord ? 'ol' : 'ul'}>`);
+      continue;
+    }
+    if (lines.length > 1 && lines.every((l) => l.includes('|'))) {
+      const rows = lines.filter((l) => !/^\s*\|?[\s:-]+\|[\s:-]*$/.test(l));
+      out.push('<table>' + rows.map((l, i) => {
+        const cells = l.split('|').map((c) => c.trim()).filter((c, idx, a) => !(idx === 0 || idx === a.length - 1) || c);
+        const tag = i === 0 ? 'th' : 'td';
+        return '<tr>' + cells.map((c) => `<${tag}>${inline(c)}</${tag}>`).join('') + '</tr>';
+      }).join('') + '</table>');
+      continue;
+    }
+    out.push('<p>' + lines.map((l) => inline(l)).join('<br>') + '</p>');
+  }
+  return out.join('\n');
+}
+
+function inline(s) {
+  const codes = [];
+  s = esc(s).replace(/`([^`]+)`/g, (_, c) => { codes.push(c); return '\u0000' + (codes.length - 1) + '\u0000'; });
+  s = s.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_, a, u) => `<a href="${u}" target="_blank" rel="noreferrer">${a || u}</a>`);
+  s = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, a, u) => `<a href="${u}" target="_blank" rel="noreferrer">${a}</a>`);
+  s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  s = s.replace(/\u0000(\d+)\u0000/g, (_, i) => '<code>' + codes[+i] + '</code>');
+  return s;
+}
+
+/* ── 动作 ─────────────────────────────────── */
+async function doOpen(mode) {
+  if (!S.file) return;
+  const r = await j('/api/open', {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ p: S.file, mode }),
+  });
+  if (!r.ok) alert('打不开：' + (r.reason || '未知'));
+}
+
+$('#b-open').onclick = () => doOpen('open');
+$('#b-reveal').onclick = () => doOpen('reveal');
+
+/* ── 搜索 ─────────────────────────────────── */
+let timer = null;
+$('#q').addEventListener('input', (e) => {
+  clearTimeout(timer);
+  const q = e.target.value.trim();
+  timer = setTimeout(async () => {
+    if (!q) { S.hits = null; renderTree(); return; }
+    const d = await j('/api/search?q=' + encodeURIComponent(q));
+    S.hits = d.rows || [];
+    renderTree();
+  }, 170);
+});
+
+/* 收起所有层级，只留三个分组头 */
+$('#coll').onclick = () => {
+  const y = $('#tree').scrollTop;
+  S.hits = null;
+  for (const k of [...S.open]) if (k.startsWith('i:') || k.startsWith('c:') || k.startsWith('d:') || k.startsWith('f:')) S.open.delete(k);
+  renderTree();
+  $('#tree').scrollTop = 0;
+};
+
+/* 深链定位：把条目所在的分组/分类逐级展开 */
+function openChain(id) {
+  const all = S.groups.flatMap((g) => g.items.map((x) => ({ ...x, type: g.type })));
+  const r = all.find((x) => x.id === id);
+  if (!r) { S.open.add('i:' + id); return; }
+  S.open.add('g:' + r.type);
+  S.open.add('i:' + id);
+  if (r.type === 'skill' && r.cls) {
+    let pre = '';
+    for (const p of String(r.cls).split('/').filter(Boolean)) { pre += p; S.open.add('c:' + pre); pre += '/'; }
+  }
+}
+
+/* ── 启动 ─────────────────────────────────── */
+async function boot() {
+  const d = await j('/api/tree');
+  if (d.ok === false) { $('#stat').textContent = d.reason || '读取失败'; return; }
+  S.groups = d.groups; S.stats = d.stats || {};
+  $('#root').textContent = d.root || '';
+  const s = S.stats;
+  $('#stat').innerHTML = `项目 <b>${s.project || 0}</b> · 技能 <b>${s.skill || 0}</b> · 外部 <b>${s.external || 0}</b>`
+    + (s.whyTodo ? ` · <span class="warn">${s.whyTodo} 条 why 待补</span>` : '')
+    + (s.missing ? ` · <span class="warn">${s.missing} 项目录消失</span>` : '')
+    + (d.stale ? '<br><span class="warn">⚠ 索引落后，跑 node bin/reindex.mjs</span>' : '');
+  for (const g of d.groups) S.open.add('g:' + g.type);
+  renderTree();
+  const h = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (h.startsWith('orb=')) { home(true); openOrb(h.slice(4)); return; }
+  if (h) { S.sel = h; openChain(h); renderTree(); showItem(h); }
+  else home(true);
+  syncNav();
+}
+window.addEventListener('hashchange', () => {
+  const h = decodeURIComponent(location.hash.replace(/^#/, ''));
+  if (h.startsWith('orb=')) { home(true); openOrb(h.slice(4)); return; }
+  if (h) { S.sel = h; openChain(h); renderTree(); showItem(h); }
+  else home(true);
+});
+$('#b-back').onclick = goBack;
+$('#b-up').onclick = goUp;
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && ORB.raf) { closeOrb(); return; }
+  if (e.altKey && e.key === 'ArrowLeft') { e.preventDefault(); goBack(); }
+  if (e.key === 'Backspace' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) {
+    e.preventDefault(); goUp();
+  }
+});
+$('#brand').onclick = () => home();
+boot();
+</script>
+</body>
+</html>
